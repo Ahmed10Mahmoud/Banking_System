@@ -1,9 +1,11 @@
 package example.wep.app.service;
 
 import example.wep.app.dto.*;
+import example.wep.app.entity.RefreshToken;
 import example.wep.app.entity.Role;
 import example.wep.app.entity.User;
 import example.wep.app.exception.UserAlreadyExistsException;
+import example.wep.app.repository.RefreshTokenRepository;
 import example.wep.app.repository.RoleRepository;
 import example.wep.app.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -23,6 +26,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final RefreshTokenRepository refreshTokenRepository;
 
     public UserResponse register(RegisterRequest request) {
         if (userRepository.existsByUsernameIgnoreCase(request.username())) {
@@ -49,7 +53,7 @@ public class AuthService {
                 .username(saved.getUsername())
                 .build();
     }
-    public AuthenticationResponse login(LoginRequest request) {
+    public AuthResponseRefresh login(LoginRequest request) {
         authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.username(),
@@ -61,8 +65,58 @@ public class AuthService {
                 .orElseThrow(() ->
                         new UsernameNotFoundException("User not found"));
         String jwtToken = jwtService.generateToken(user);
-        return AuthenticationResponse.builder()
-                .token(jwtToken)
+        String refreshToken =
+                jwtService.generateRefreshToken(user);
+
+        refreshTokenRepository.deleteByUser(user);
+
+        refreshTokenRepository.save(
+                RefreshToken.builder()
+                        .token(refreshToken)
+                        .user(user)
+                        .expiryDate(
+                                LocalDateTime.now()
+                                        .plusDays(7)
+                        )
+                        .build()
+        );
+
+        return AuthResponseRefresh.builder()
+                .accessToken(jwtToken)
+                .refreshToken(refreshToken)
+                .build();
+    }
+    public AuthResponseRefresh refreshToken(
+            RefreshTokenRequest request
+    ) {
+
+        RefreshToken refreshToken =
+                refreshTokenRepository
+                        .findByToken(
+                                request.refreshToken()
+                        )
+                        .orElseThrow(
+                                () -> new RuntimeException(
+                                        "Refresh token not found"
+                                )
+                        );
+
+        if (refreshToken.getExpiryDate()
+                .isBefore(LocalDateTime.now())) {
+
+            throw new RuntimeException(
+                    "Refresh token expired"
+            );
+        }
+
+        String accessToken =
+                jwtService.generateToken(
+                        refreshToken.getUser()
+                );
+
+        return AuthResponseRefresh.builder()
+                .accessToken(accessToken)
+                .refreshToken(refreshToken.getToken())
                 .build();
     }
 }

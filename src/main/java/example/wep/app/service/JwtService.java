@@ -36,10 +36,26 @@ public class JwtService {
                                 .map(GrantedAuthority::getAuthority)
                                 .toList())
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + 1000 * 60 * 60 * 24)) // 24h
+                .expiration(new Date(System.currentTimeMillis() + 1000L * 60 * 15)) // 15 M
                 .signWith(getSignInKey())
                 .compact();
     }
+
+    public String generateRefreshToken(UserDetails user) {
+        return Jwts.builder()
+                .subject(user.getUsername())
+                .issuedAt(new Date())
+                .expiration(
+                        new Date(
+                                System.currentTimeMillis()
+                                        + 1000L * 60 * 60 * 24 * 7
+                        )
+                )
+                .signWith(getSignInKey())
+                .compact();
+    }
+
+
 
     // ========================
     // EXTRACT USERNAME
