@@ -4,6 +4,7 @@ import example.wep.app.dto.*;
 import example.wep.app.service.TransactionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,11 +56,17 @@ public class TransactionController {
     }
 
     @GetMapping("/{accountNumber}/transactions")
-    public ResponseEntity<List<TransactionResponse>> getTransactions(
-            @PathVariable Long accountNumber
+    public ResponseEntity<Page<TransactionResponse>> getTransactions(
+            @PathVariable Long accountNumber,
+            @RequestParam(defaultValue = "0")
+            int page,
+            @RequestParam(defaultValue = "10")
+            int size
     ){
         return ResponseEntity.ok(
-                transactionService.getAccountTransactions(accountNumber)
+                transactionService.getAccountTransactions(accountNumber,
+                        page,
+                        size)
         );
     }
 

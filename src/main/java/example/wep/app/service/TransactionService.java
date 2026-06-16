@@ -12,6 +12,9 @@ import example.wep.app.repository.AccountRepository;
 import example.wep.app.repository.TransactionRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -175,14 +178,14 @@ public class TransactionService {
 
     }
 
-    public List<TransactionResponse>
-    getAccountTransactions(Long accountNumber){
+    public Page<TransactionResponse>
+    getAccountTransactions(Long accountNumber,int page, int size){
 
         Account account =
                 accountRepository
                         .findByAccountNumber(accountNumber)
                         .orElseThrow(
-                                () -> new RuntimeException(
+                                () -> new AccountNotFoundException(
                                         "Account not found"
                                 )
                         );
@@ -201,15 +204,20 @@ public class TransactionService {
             );
         }
 
-        List<Transactions> transactions =
+        Page<Transactions> transactions =
                 transactionRepository
                         .findBySenderAccountOrReceiverAccount(
                                 account,
-                                account
+                                account,
+                                PageRequest.of(
+                                        page,
+                                        size,
+                                        Sort.by("createdAt")
+                                                .descending()
+                                )
                         );
 
-        return transactions.stream()
-                .map(tx -> TransactionResponse.builder()
+        return transactions.map(tx -> TransactionResponse.builder()
                         .txId(tx.getTxId())
                         .type(tx.getType())
                         .amount(tx.getAmount())
@@ -218,7 +226,6 @@ public class TransactionService {
                         .receiver(tx.getReciever())
                         .createdAt(tx.getCreatedAt())
                         .build()
-                )
-                .toList();
+                );
     }
 }
