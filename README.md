@@ -34,6 +34,8 @@ POST /auth/register
 
 POST /auth/login
 
+Post / auth / Refresh Tokens
+
 ### Accounts
 
 POST /accounts
@@ -52,7 +54,6 @@ GET /transactions/{accountNumber}
 
 ## Future Improvements
 
-- Refresh Tokens
 - Email Verification
 - Docker
 - Redis Caching
