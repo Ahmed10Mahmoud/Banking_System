@@ -1,0 +1,17 @@
+package example.wep.app.dto;
+
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotNull;
+
+import java.math.BigDecimal;
+
+public record TransferRequest(
+        @NotNull
+         Long senderAccountNumber,
+         @NotNull
+         Long receiverAccountNumber,
+        @NotNull
+        @DecimalMin("0.01")
+         BigDecimal amount
+) {
+}
